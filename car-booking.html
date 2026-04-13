@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Fika</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --b1:#1565FF;--b2:#0A3FCC;--b3:#082FA0;
+  --acc:#00D2FF;--orange:#FF6B35;
+  --white:#fff;--dark:#060E20;
+}
+
+html,body{
+  min-height:100vh;font-family:'Syne',sans-serif;
+  background:var(--dark);overflow-x:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px 16px 48px;
+}
+
+/* animated grid */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(21,101,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(21,101,255,.07) 1px,transparent 1px);
+  background-size:40px 40px;
+  animation:gridDrift 20s linear infinite;
+  pointer-events:none;z-index:0;
+}
+@keyframes gridDrift{0%{background-position:0 0}100%{background-position:40px 40px}}
+
+/* orbs */
+.orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;animation:orbFloat 8s ease-in-out infinite}
+.orb1{width:350px;height:350px;background:rgba(21,101,255,.22);top:-100px;left:-100px;animation-delay:0s}
+.orb2{width:280px;height:280px;background:rgba(0,210,255,.12);bottom:-80px;right:-80px;animation-delay:-4s}
+.orb3{width:200px;height:200px;background:rgba(255,107,53,.09);top:45%;left:45%;animation-delay:-2s}
+@keyframes orbFloat{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,-40px) scale(1.12)}}
+
+/* FIKA brand */
+.brand{position:relative;z-index:10;margin-bottom:28px;text-align:center;animation:brandDrop .9s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes brandDrop{from{opacity:0;transform:translateY(-50px) scale(.7) rotate(-5deg)}to{opacity:1;transform:none}}
+
+.fika-logo{
+  font-size:58px;font-weight:800;letter-spacing:-4px;line-height:1;
+  background:linear-gradient(135deg,#fff 0%,var(--acc) 50%,var(--b1) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  background-size:200% 200%;
+  animation:logoShimmer 4s ease-in-out infinite;
+}
+@keyframes logoShimmer{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+.brand-sub{font-size:10px;letter-spacing:5px;text-transform:uppercase;color:rgba(255,255,255,.35);margin-top:4px;animation:fadeUp .6s .5s both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* phones wrapper */
+.phones{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap;justify-content:center;position:relative;z-index:10}
+
+/* phone shell */
+.phone{
+  width:295px;height:635px;background:#fff;
+  border-radius:42px;overflow:hidden;
+  display:flex;flex-direction:column;
+  position:relative;
+  border:5px solid #1a2a4a;
+  box-shadow:0 0 0 1px rgba(255,255,255,.05),0 40px 100px rgba(0,0,0,.55),0 0 60px rgba(21,101,255,.18);
+  animation:phoneIn .9s cubic-bezier(.34,1.56,.64,1) both;
+  transition:transform .4s ease,box-shadow .4s ease;
+}
+.phone:nth-child(2){animation-delay:.18s}
+@keyframes phoneIn{from{opacity:0;transform:translateY(70px) rotateX(20deg) scale(.88)}to{opacity:1;transform:none}}
+.phone:hover{
+  transform:perspective(900px) rotateY(-4deg) rotateX(2deg) scale(1.015);
+  box-shadow:0 0 0 1px rgba(255,255,255,.08),0 55px 120px rgba(0,0,0,.6),0 0 90px rgba(21,101,255,.3);
+}
+
+/* notch */
+.phone::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:85px;height:22px;background:#1a2a4a;border-radius:0 0 16px 16px;z-index:30}
+.phone::after{content:'';position:absolute;top:7px;right:18px;width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.4);z-index:31;box-shadow:-9px 0 0 rgba(255,255,255,.3),-18px 0 0 rgba(255,255,255,.2)}
+
+/* ── PHONE 1 HEADER ── */
+.p1h{
+  background:linear-gradient(160deg,var(--b1) 0%,var(--b2) 65%,var(--b3) 100%);
+  padding:34px 18px 18px;flex-shrink:0;
+  position:relative;overflow:hidden;
+}
+.p1h::before,.p1h::after{content:'';position:absolute;border-radius:50%}
+.p1h::before{bottom:-25px;left:-10%;width:120%;height:55px;background:rgba(255,255,255,.05);animation:waveA 3s ease-in-out infinite}
+.p1h::after{bottom:-35px;left:-5%;width:110%;height:45px;background:rgba(255,255,255,.04);animation:waveA 3s ease-in-out infinite reverse}
+@keyframes waveA{0%,100%{transform:scaleX(1) translateY(0)}50%{transform:scaleX(1.06) translateY(-8px)}}
+
+.approw{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+.appname{font-size:21px;font-weight:800;color:#fff;letter-spacing:-1px;animation:namePop .5s .3s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes namePop{from{opacity:0;transform:scale(.4) rotate(-15deg)}to{opacity:1;transform:none}}
+.appname span{color:var(--acc)}
+.carbadge{
+  background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);
+  border-radius:20px;padding:4px 10px;
+  font-size:10px;color:rgba(255,255,255,.9);font-weight:700;
+  backdrop-filter:blur(6px);
+  animation:badgeBounce 2.5s ease-in-out infinite;
+}
+@keyframes badgeBounce{0%,100%{transform:translateY(0) rotate(0)}40%{transform:translateY(-4px) rotate(2deg)}60%{transform:translateY(-2px) rotate(-1deg)}}
+
+.htitle{font-size:20px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:3px;animation:slideR .5s .15s both}
+@keyframes slideR{from{opacity:0;transform:translateX(-22px)}to{opacity:1;transform:none}}
+.hsub{font-size:11px;color:rgba(255,255,255,.65);margin-bottom:13px}
+
+/* search */
+.sbar{display:flex;gap:7px;align-items:center;position:relative}
+.sfield{
+  flex:1;display:flex;align-items:center;gap:7px;
+  background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.3);
+  border-radius:13px;padding:0 11px;
+  backdrop-filter:blur(10px);transition:all .3s;
+}
+.sfield:focus-within{
+  background:rgba(255,255,255,.26);border-color:rgba(255,255,255,.8);
+  box-shadow:0 0 22px rgba(0,210,255,.35);transform:scale(1.01);
+}
+.sico{font-size:14px;flex-shrink:0;animation:icoPulse 2.5s ease-in-out infinite}
+@keyframes icoPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25) rotate(15deg)}}
+.sinput{flex:1;background:transparent;border:none;outline:none;font-family:'Syne',sans-serif;font-size:12px;color:#fff;padding:10px 0}
+.sinput::placeholder{color:rgba(255,255,255,.5)}
+
+/* find btn */
+.btnfind{
+  background:rgba(255,255,255,.2);color:#fff;
+  border:1.5px solid rgba(255,255,255,.5);
+  border-radius:12px;padding:9px 13px;
+  font-family:'Syne',sans-serif;font-size:11px;font-weight:700;
+  cursor:pointer;white-space:nowrap;backdrop-filter:blur(6px);
+  transition:all .25s;position:relative;overflow:hidden;
+}
+.btnfind::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);transform:translateX(-100%);animation:sheen 2.5s ease-in-out infinite}
+@keyframes sheen{0%,100%{transform:translateX(-100%)}50%{transform:translateX(100%)}}
+.btnfind:hover{background:rgba(255,255,255,.38);transform:translateY(-2px) scale(1.05);box-shadow:0 8px 20px rgba(0,0,0,.2),0 0 16px rgba(0,210,255,.35)}
+.btnfind:active{transform:scale(.95)}
+
+/* autocomplete */
+.ac{position:absolute;top:calc(100% + 6px);left:0;right:56px;background:#fff;border-radius:12px;box-shadow:0 16px 50px rgba(0,0,0,.25);overflow:hidden;z-index:999;display:none;animation:acDrop .22s cubic-bezier(.34,1.56,.64,1)}
+@keyframes acDrop{from{opacity:0;transform:translateY(-12px) scale(.96)}to{opacity:1;transform:none}}
+.ac.open{display:block}
+.aci{display:flex;align-items:center;gap:8px;padding:9px 13px;font-size:11px;color:#0D1830;cursor:pointer;border-bottom:1px solid #f0f4ff;transition:all .12s}
+.aci:hover{background:#eef4ff;transform:translateX(5px)}
+.aci:last-child{border-bottom:none}
+.acd{width:6px;height:6px;border-radius:50%;background:var(--b1);flex-shrink:0}
+
+/* map */
+.p1map{flex:1;position:relative;overflow:hidden}
+#map1{width:100%;height:100%}
+.maphint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;z-index:10;gap:8px;transition:opacity .5s}
+.maphint.gone{opacity:0}
+.mhico{font-size:42px;animation:carDrive 2s ease-in-out infinite}
+@keyframes carDrive{0%,100%{transform:translateX(0) rotate(0)}30%{transform:translateX(10px) rotate(3deg)}70%{transform:translateX(-10px) rotate(-3deg)}}
+.mhtxt{font-size:11px;font-weight:600;color:#7A92B8;background:rgba(255,255,255,.93);padding:5px 14px;border-radius:20px;backdrop-filter:blur(4px)}
+
+/* result strip */
+.p1res{background:#fff;padding:9px 16px;display:none;align-items:center;justify-content:space-between;border-top:1px solid #e0eaff;flex-shrink:0;gap:8px}
+.p1res.show{display:flex;animation:stripIn .45s cubic-bezier(.34,1.56,.64,1)}
+@keyframes stripIn{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+.rname{font-size:12px;font-weight:700;color:#0D1830}
+.rcoords{font-size:9px;color:#7A92B8;font-family:'DM Mono',monospace}
+
+/* book car btn */
+.btnbook{
+  background:linear-gradient(135deg,var(--b1),var(--acc));
+  color:#fff;border:none;border-radius:11px;
+  padding:8px 14px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;
+  cursor:pointer;white-space:nowrap;
+  box-shadow:0 4px 16px rgba(21,101,255,.4);
+  transition:all .25s;position:relative;overflow:hidden;
+  animation:bookPop .5s cubic-bezier(.34,1.56,.64,1);
+}
+.btnbook::before{content:'';position:absolute;top:-50%;left:-60%;width:40%;height:200%;background:rgba(255,255,255,.3);transform:skewX(-20deg);animation:sheen 2s ease-in-out infinite}
+.btnbook:hover{transform:translateY(-2px) scale(1.06);box-shadow:0 8px 28px rgba(21,101,255,.55)}
+@keyframes bookPop{from{opacity:0;transform:scale(0) rotate(180deg)}to{opacity:1;transform:none}}
+
+/* phone1 footer */
+.p1foot{background:linear-gradient(135deg,var(--b1),var(--b2));padding:13px 18px 20px;flex-shrink:0;position:relative;overflow:hidden}
+.p1foot::before{content:'';position:absolute;top:-30px;right:-30px;width:90px;height:90px;background:rgba(255,255,255,.07);border-radius:50%;animation:footOrb 4s ease-in-out infinite}
+@keyframes footOrb{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.4) rotate(180deg)}}
+.footlbl{font-size:9px;color:rgba(255,255,255,.6);letter-spacing:2px;text-transform:uppercase;margin-bottom:7px}
+.btnfindlg{
+  width:100%;background:rgba(255,255,255,.18);color:#fff;
+  border:1.5px solid rgba(255,255,255,.4);border-radius:14px;padding:12px;
+  font-family:'Syne',sans-serif;font-size:13px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;
+  transition:all .3s;position:relative;overflow:hidden;
+}
+.btnfindlg::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);transform:translateX(-100%);animation:sweep 2.5s ease-in-out infinite}
+@keyframes sweep{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.btnfindlg:hover{background:rgba(255,255,255,.32);transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,0,0,.2)}
+
+/* ── PHONE 2 HEADER ── */
+.p2h{background:linear-gradient(160deg,var(--b1) 0%,var(--b2) 60%,var(--b3) 100%);padding:32px 18px 16px;flex-shrink:0;position:relative;overflow:hidden}
+.p2h::before{content:'🚗';position:absolute;right:14px;bottom:8px;font-size:34px;opacity:.18;animation:carBob 2s ease-in-out infinite}
+@keyframes carBob{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-7px) rotate(5deg)}}
+.p2back{display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,.7);margin-bottom:10px;cursor:pointer;font-weight:600;transition:all .2s;width:fit-content}
+.p2back:hover{color:#fff;transform:translateX(-4px)}
+.p2city{font-size:22px;font-weight:800;color:#fff;line-height:1.1;transition:all .4s}
+.p2city.changed{animation:cityChange .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes cityChange{0%{transform:scale(.75) translateY(12px);opacity:0}100%{transform:none;opacity:1}}
+.p2tag{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.14);color:rgba(255,255,255,.9);font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;margin-top:6px;backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.2)}
+
+/* booking body */
+.p2body{flex:1;overflow-y:auto;padding:13px 13px 8px;background:#F2F6FF;display:flex;flex-direction:column;gap:10px;scrollbar-width:none}
+.p2body::-webkit-scrollbar{display:none}
+.seclbl{font-size:9px;font-weight:700;color:#7A92B8;letter-spacing:2px;text-transform:uppercase}
+
+/* price card */
+.pricecard{
+  background:linear-gradient(135deg,var(--b1),var(--b2));
+  border-radius:18px;padding:15px;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 8px 30px rgba(21,101,255,.32);
+  position:relative;overflow:hidden;
+  animation:cardSlide .5s .2s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes cardSlide{from{opacity:0;transform:translateX(35px)}to{opacity:1;transform:none}}
+.pricecard::before{content:'';position:absolute;right:-20px;top:-20px;width:88px;height:88px;border-radius:50%;background:rgba(255,255,255,.1);animation:pcOrb 3s ease-in-out infinite}
+.pricecard::after{content:'';position:absolute;left:-28px;bottom:-28px;width:75px;height:75px;border-radius:50%;background:rgba(0,210,255,.12);animation:pcOrb 3s ease-in-out infinite reverse}
+@keyframes pcOrb{0%,100%{transform:scale(1)}50%{transform:scale(1.5)}}
+.plbl{font-size:10px;color:rgba(255,255,255,.7);margin-bottom:2px}
+.pamt{font-size:28px;font-weight:800;color:#fff;font-family:'DM Mono',monospace;transition:all .3s;position:relative;z-index:1}
+.pamt.bump{animation:numBump .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes numBump{0%,100%{transform:scale(1)}50%{transform:scale(1.2) rotate(-2deg)}}
+.pper{font-size:10px;color:rgba(255,255,255,.6);margin-top:2px}
+.daysctrl{display:flex;flex-direction:column;align-items:center;gap:5px;position:relative;z-index:1}
+.dayslbl{font-size:9px;color:rgba(255,255,255,.65)}
+.daysval{font-size:24px;font-weight:800;color:#fff;transition:all .2s}
+.daysbtns{display:flex;gap:5px}
+.dbtn{width:27px;height:27px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);border-radius:8px;color:#fff;font-size:17px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:'Syne',sans-serif;line-height:1}
+.dbtn:hover{background:rgba(255,255,255,.42);transform:scale(1.2)}
+.dbtn:active{transform:scale(.88)}
+
+/* car pills */
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{background:#fff;border:1.5px solid #dce8ff;border-radius:20px;padding:5px 12px;font-size:10px;font-weight:700;color:#0D1830;cursor:pointer;transition:all .22s}
+.pill:hover,.pill.on{background:var(--b1);color:#fff;border-color:var(--b1);transform:scale(1.07);box-shadow:0 4px 14px rgba(21,101,255,.35)}
+
+/* fields */
+.fgroup{display:flex;flex-direction:column;gap:7px}
+.field{background:#fff;border:1.5px solid #dce8ff;border-radius:12px;padding:9px 13px;display:flex;flex-direction:column;gap:2px;transition:all .25s;animation:fieldIn .4s both}
+.field:nth-child(1){animation-delay:.08s}.field:nth-child(2){animation-delay:.14s}.field:nth-child(3){animation-delay:.2s}
+@keyframes fieldIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.field:focus-within{border-color:var(--b1);box-shadow:0 0 0 3px rgba(21,101,255,.12),0 4px 12px rgba(21,101,255,.1);transform:scale(1.01)}
+.flbl{font-size:9px;font-weight:700;color:#7A92B8;letter-spacing:1px;text-transform:uppercase}
+.field input{border:none;outline:none;background:transparent;font-family:'Syne',sans-serif;font-size:12px;color:#0D1830;font-weight:500;padding:0}
+.field input::placeholder{color:#c0d0ea}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+
+/* total */
+.totalrow{background:linear-gradient(135deg,var(--b1),var(--b2));border-radius:14px;padding:12px 15px;display:flex;align-items:center;justify-content:space-between;animation:totalPulse 2.5s ease-in-out infinite}
+@keyframes totalPulse{0%,100%{box-shadow:0 4px 20px rgba(21,101,255,.3)}50%{box-shadow:0 4px 35px rgba(21,101,255,.55),0 0 20px rgba(0,210,255,.2)}}
+.tlbl{font-size:10px;color:rgba(255,255,255,.7);margin-bottom:2px}
+.tamt{font-size:20px;font-weight:800;color:#fff;font-family:'DM Mono',monospace;transition:all .3s}
+.tamt.pop{animation:numBump .35s cubic-bezier(.34,1.56,.64,1)}
+
+/* pay footer */
+.p2foot{background:linear-gradient(135deg,var(--b1),var(--b2));padding:13px 16px 22px;flex-shrink:0}
+.btnpay{
+  width:100%;background:rgba(255,255,255,.2);color:#fff;
+  border:1.5px solid rgba(255,255,255,.45);border-radius:14px;padding:13px;
+  font-family:'Syne',sans-serif;font-size:13px;font-weight:800;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all .3s;letter-spacing:.5px;position:relative;overflow:hidden;
+}
+.btnpay::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);transform:translateX(-100%);animation:sweep 2s ease-in-out infinite}
+.btnpay:hover{background:rgba(255,255,255,.33);transform:translateY(-2px);box-shadow:0 10px 32px rgba(0,0,0,.22)}
+.btnpay:active{transform:scale(.97)}
+
+/* spinner */
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:rot .6s linear infinite;vertical-align:middle}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* toast */
+.toast{
+  position:fixed;bottom:24px;left:50%;
+  transform:translateX(-50%) translateY(80px);
+  background:linear-gradient(135deg,#0D1830,#1a2a4a);
+  color:#fff;font-family:'Syne',sans-serif;font-size:12px;font-weight:600;
+  padding:11px 22px;border-radius:30px;
+  box-shadow:0 8px 30px rgba(0,0,0,.4),0 0 20px rgba(21,101,255,.3);
+  z-index:9999;transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+  white-space:nowrap;border:1px solid rgba(255,255,255,.1);
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* particles */
+.particle{position:fixed;pointer-events:none;z-index:1;border-radius:50%;animation:particleFly linear infinite}
+@keyframes particleFly{0%{transform:translateY(100vh) scale(0);opacity:0}10%{opacity:.8}90%{opacity:.5}100%{transform:translateY(-10vh) scale(1);opacity:0}}
+
+/* success overlay */
+.soverlay{position:fixed;inset:0;background:rgba(6,14,32,.88);backdrop-filter:blur(10px);z-index:10000;display:none;align-items:center;justify-content:center}
+.soverlay.show{display:flex;animation:fadeIn .3s both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.scard{background:linear-gradient(160deg,#0D1830,#1a2a4a);border:1px solid rgba(255,255,255,.1);border-radius:30px;padding:40px 30px;text-align:center;box-shadow:0 40px 100px rgba(0,0,0,.55),0 0 60px rgba(21,101,255,.3);animation:successPop .6s cubic-bezier(.34,1.56,.64,1)}
+@keyframes successPop{from{opacity:0;transform:scale(.45) rotate(-12deg)}to{opacity:1;transform:none}}
+.sico{font-size:64px;display:block;margin-bottom:16px;animation:carDrive 1s ease-in-out infinite}
+.stitle{font-size:26px;font-weight:800;color:#fff;margin-bottom:8px}
+.ssub{font-size:12px;color:rgba(255,255,255,.6);margin-bottom:24px;line-height:1.5}
+.sclose{background:linear-gradient(135deg,var(--b1),var(--acc));color:#fff;border:none;border-radius:14px;padding:12px 32px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 6px 20px rgba(21,101,255,.4)}
+.sclose:hover{transform:scale(1.07);box-shadow:0 10px 28px rgba(21,101,255,.6)}
+
+@media(max-width:660px){.phones{gap:18px}.phone{width:272px;height:595px}}
+</style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<!-- FIKA brand -->
+<div class="brand">
+  <div class="fika-logo">fika</div>
+  <div class="brand-sub">🚗 &nbsp; car rental made simple</div>
+</div>
+
+<div class="phones">
+
+  <!-- ═══════ PHONE 1 — SEARCH ═══════ -->
+  <div class="phone">
+    <div class="p1h">
+      <div class="approw">
+        <div class="appname">fi<span>ka</span></div>
+        <div class="carbadge">🚗 Cars</div>
+      </div>
+      <div class="htitle">Where are you<br>heading?</div>
+      <div class="hsub">Search a city — find your ride instantly</div>
+      <div class="sbar" id="sbar">
+        <div class="sfield">
+          <span class="sico">🔍</span>
+          <input class="sinput" id="cityInput" type="text" placeholder="e.g. Lusaka, Nairobi, Lagos…" autocomplete="off"/>
+        </div>
+        <button class="btnfind" id="findBtn">Find</button>
+        <div class="ac" id="acList"></div>
+      </div>
+    </div>
+
+    <div class="p1map">
+      <div id="map1"></div>
+      <div class="maphint" id="mapHint">
+        <span class="mhico">🚗</span>
+        <span class="mhtxt">Search a city to find cars</span>
+      </div>
+    </div>
+
+    <div class="p1res" id="resultStrip">
+      <div>
+        <div class="rname" id="resName">—</div>
+        <div class="rcoords" id="resCoords">—</div>
+      </div>
+      <button class="btnbook" id="bookBtn">🚗 Book Car</button>
+    </div>
+
+    <div class="p1foot">
+      <div class="footlbl">Find available cars</div>
+      <button class="btnfindlg" id="findLargeBtn"><span>🔍</span> Find Cars</button>
+    </div>
+  </div>
+
+  <!-- ═══════ PHONE 2 — BOOKING ═══════ -->
+  <div class="phone">
+    <div class="p2h">
+      <div class="p2back" onclick="document.getElementById('cityInput').focus()">← Back to search</div>
+      <div class="p2city" id="p2City">Pick a City</div>
+      <div class="p2tag">🚗 <span id="p2Tag">Search from screen 1</span></div>
+    </div>
+
+    <div class="p2body">
+      <div class="seclbl">Your Rental</div>
+
+      <div class="pricecard">
+        <div style="position:relative;z-index:1">
+          <div class="plbl">Price per day</div>
+          <div class="pamt" id="priceAmt">K150</div>
+          <div class="pper">per day · incl. insurance</div>
+        </div>
+        <div class="daysctrl">
+          <div class="dayslbl">Days</div>
+          <div class="daysval" id="daysVal">1</div>
+          <div class="daysbtns">
+            <button class="dbtn" onclick="changeDays(-1)">−</button>
+            <button class="dbtn" onclick="changeDays(1)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="seclbl">Car Type</div>
+      <div class="pills" id="pills">
+        <div class="pill on" onclick="pickPill(this)">Sedan</div>
+        <div class="pill" onclick="pickPill(this)">SUV</div>
+        <div class="pill" onclick="pickPill(this)">Pickup</div>
+        <div class="pill" onclick="pickPill(this)">Van</div>
+        <div class="pill" onclick="pickPill(this)">Luxury</div>
+      </div>
+
+      <div class="seclbl">Driver Details</div>
+      <div class="fgroup">
+        <div class="field">
+          <span class="flbl">Full Name</span>
+          <input type="text" placeholder="Jane Doe"/>
+        </div>
+        <div class="field">
+          <span class="flbl">Phone / Email</span>
+          <input type="text" placeholder="+260 … or jane@email.com"/>
+        </div>
+        <div class="frow">
+          <div class="field">
+            <span class="flbl">Pick-up Date</span>
+            <input type="date"/>
+          </div>
+          <div class="field">
+            <span class="flbl">Drop-off Date</span>
+            <input type="date"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="totalrow">
+        <div>
+          <div class="tlbl">Total Amount</div>
+          <div class="tamt" id="totalAmt">K150</div>
+        </div>
+        <span style="font-size:22px">💳</span>
+      </div>
+    </div>
+
+    <div class="p2foot">
+      <button class="btnpay" id="payBtn">
+        <span>🚗</span> Pay &amp; Confirm Rental
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- success -->
+<div class="soverlay" id="successOverlay">
+  <div class="scard">
+    <span class="sico">🚗</span>
+    <div class="stitle">Booking Confirmed!</div>
+    <div class="ssub" id="successMsg">Your car is ready.</div>
+    <button class="sclose" onclick="document.getElementById('successOverlay').classList.remove('show')">Awesome! 🎉</button>
+  </div>
+</div>
+
+<script>
+/* ── PARTICLES ── */
+(function(){
+  const cols=['rgba(21,101,255,.5)','rgba(0,210,255,.4)','rgba(255,107,53,.3)'];
+  for(let i=0;i<20;i++){
+    const p=document.createElement('div');
+    p.className='particle';
+    const s=Math.random()*4+2;
+    p.style.cssText=`width:${s}px;height:${s}px;background:${cols[Math.floor(Math.random()*cols.length)]};left:${Math.random()*100}%;animation-duration:${Math.random()*10+8}s;animation-delay:${Math.random()*10}s;`;
+    document.body.appendChild(p);
+  }
+})();
+
+/* ── MAP ── */
+const map1=L.map('map1',{zoomControl:false,attributionControl:false}).setView([0,20],2);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(map1);
+
+const pin=L.divIcon({
+  html:`<div style="width:30px;height:30px;background:linear-gradient(135deg,#1565FF,#00D2FF);border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 4px 16px rgba(21,101,255,.6);"></div>`,
+  className:'',iconSize:[30,30],iconAnchor:[15,30],popupAnchor:[0,-32]
+});
+
+let marker=null,currentCity='Selected City',days=1;
+const PRICE=150;
+
+async function geocode(q){
+  const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`,{headers:{'Accept-Language':'en'}});
+  return r.json();
+}
+
+const cityInput=document.getElementById('cityInput');
+const findBtn=document.getElementById('findBtn');
+const findLargeBtn=document.getElementById('findLargeBtn');
+const acList=document.getElementById('acList');
+const resultStrip=document.getElementById('resultStrip');
+const resName=document.getElementById('resName');
+const resCoords=document.getElementById('resCoords');
+const bookBtn=document.getElementById('bookBtn');
+const mapHint=document.getElementById('mapHint');
+const p2City=document.getElementById('p2City');
+const p2Tag=document.getElementById('p2Tag');
+const daysVal=document.getElementById('daysVal');
+const totalAmt=document.getElementById('totalAmt');
+const payBtn=document.getElementById('payBtn');
+const toast=document.getElementById('toast');
+
+/* autocomplete */
+let debT;
+cityInput.addEventListener('input',()=>{
+  clearTimeout(debT);
+  const q=cityInput.value.trim();
+  if(q.length<2){acList.classList.remove('open');return;}
+  debT=setTimeout(async()=>{const res=await geocode(q);renderAC(res);},320);
+});
+
+function renderAC(res){
+  if(!res.length){acList.classList.remove('open');return;}
+  acList.innerHTML=res.map(r=>`<div class="aci" data-lat="${r.lat}" data-lon="${r.lon}" data-name="${r.display_name.split(',')[0]}"><span class="acd"></span>${r.display_name.split(',').slice(0,3).join(', ')}</div>`).join('');
+  acList.classList.add('open');
+  acList.querySelectorAll('.aci').forEach(el=>{
+    el.addEventListener('click',()=>{cityInput.value=el.dataset.name;acList.classList.remove('open');locate(el.dataset.name,+el.dataset.lat,+el.dataset.lon);});
+  });
+}
+
+document.addEventListener('click',e=>{if(!document.getElementById('sbar').contains(e.target))acList.classList.remove('open');});
+
+/* find */
+function doFind(){
+  const q=cityInput.value.trim();if(!q)return;
+  setLoad(true);acList.classList.remove('open');
+  geocode(q).then(res=>{
+    setLoad(false);
+    if(!res.length){showToast('❌ City not found. Try again!');return;}
+    locate(res[0].display_name.split(',')[0],+res[0].lat,+res[0].lon);
+  }).catch(()=>{setLoad(false);showToast('⚠️ Network error');});
+}
+
+function setLoad(on){
+  findBtn.innerHTML=on?'<span class="spin"></span>':'Find';findBtn.disabled=on;
+  findLargeBtn.innerHTML=on?'<span class="spin"></span> Searching…':'<span>🔍</span> Find Cars';findLargeBtn.disabled=on;
+}
+
+findBtn.addEventListener('click',doFind);
+findLargeBtn.addEventListener('click',doFind);
+cityInput.addEventListener('keydown',e=>{if(e.key==='Enter')doFind();});
+
+/* locate */
+function locate(name,lat,lon){
+  currentCity=name;
+  if(marker)map1.removeLayer(marker);
+  marker=L.marker([lat,lon],{icon:pin}).addTo(map1)
+    .bindPopup(`<b style="font-family:Syne,sans-serif;font-size:13px;color:#0D1830">${name}</b><br><small style="color:#7A92B8">${lat.toFixed(4)}°, ${lon.toFixed(4)}°</small>`)
+    .openPopup();
+  map1.flyTo([lat,lon],12,{duration:1.5});
+  mapHint.classList.add('gone');
+  resName.textContent=name;resCoords.textContent=`${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
+  resultStrip.classList.add('show');
+  p2City.classList.remove('changed');void p2City.offsetWidth;p2City.classList.add('changed');
+  p2City.textContent=name;p2Tag.textContent='🚗 Cars ready';
+  updateTotal();showToast(`📍 ${name} — cars available!`);burst(12);
+}
+
+/* days */
+function changeDays(d){
+  days=Math.max(1,Math.min(30,days+d));daysVal.textContent=days;
+  updateTotal(true);
+}
+function updateTotal(anim=false){
+  const t=PRICE*days;
+  if(anim){
+    totalAmt.classList.remove('pop');void totalAmt.offsetWidth;totalAmt.classList.add('pop');
+    document.getElementById('priceAmt').classList.remove('bump');void document.getElementById('priceAmt').offsetWidth;document.getElementById('priceAmt').classList.add('bump');
+  }
+  totalAmt.textContent=`K${t}`;
+}
+
+function pickPill(el){document.querySelectorAll('.pill').forEach(p=>p.classList.remove('on'));el.classList.add('on');}
+
+bookBtn.addEventListener('click',()=>{
+  p2City.classList.remove('changed');void p2City.offsetWidth;p2City.classList.add('changed');
+  p2City.textContent=currentCity;p2Tag.textContent='Ready to confirm';
+  showToast(`🚗 Booking ${currentCity} — fill your details!`);
+});
+
+payBtn.addEventListener('click',()=>{
+  const car=document.querySelector('.pill.on');
+  document.getElementById('successMsg').textContent=`${days} day(s) · ${car?car.textContent:'Sedan'} · ${currentCity} — K${PRICE*days}`;
+  document.getElementById('successOverlay').classList.add('show');
+  burst(35);
+});
+
+/* burst */
+function burst(n){
+  const cols=['#1565FF','#00D2FF','#FF6B35','#ffffff'];
+  for(let i=0;i<n;i++){
+    const p=document.createElement('div');
+    const dx=(Math.random()-0.5)*400;const dy=-(Math.random()*350+100);
+    p.style.cssText=`position:fixed;z-index:9998;pointer-events:none;width:${Math.random()*9+4}px;height:${Math.random()*9+4}px;background:${cols[Math.floor(Math.random()*cols.length)]};border-radius:50%;left:${Math.random()*100}%;top:50%;animation:b${i} .9s ease-out forwards;animation-delay:${Math.random()*.25}s;`;
+    const s=document.createElement('style');
+    s.textContent=`@keyframes b${i}{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(${dx}px,${dy}px) scale(0);opacity:0}}`;
+    document.head.appendChild(s);
+    document.body.appendChild(p);
+    setTimeout(()=>{p.remove();s.remove();},1200);
+  }
+}
+
+/* toast */
+function showToast(msg){
+  toast.textContent=msg;toast.classList.add('show');
+  clearTimeout(toast._t);toast._t=setTimeout(()=>toast.classList.remove('show'),3200);
+}
+
+updateTotal();
+</script>
+</body>
+</html>
